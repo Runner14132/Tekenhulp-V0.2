@@ -27,7 +27,7 @@ def nieuw_project():
     screen.clear_screen()
     header.show(root, text="Nieuw project")
     datascreen.show()
-    imagescreen.config(image="Legs.jpg", bg="#DDDDDD", linethickness="2", linecolor="#DDDDDD", image_center="True")
+    imagescreen.config(image="", bg="#DDDDDD", linethickness="2", linecolor="#DDDDDD", image_center="True")
     imagescreen.show_canvas()
     imagescreen.show_image()
     # imagescreen.load_image()
