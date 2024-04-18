@@ -4,9 +4,13 @@
 #               als kwarg mee te geven. Daarom een string "True" of "False" meegeven en deze bij
 #               het afvangen omzetten naar boolean
 
-# TODO: 001:    Als je een nieuwe foto laadt dan moeten de variabelen zwart/wit en helderheid weer naar de initiele
-#               gezet worden.
+# DONE: 001:    Als je een nieuwe foto laadt dan moeten de variabelen zwart/wit en helderheid weer naar de initiele
+#               waarde gezet worden.
 # TODO: 002:    Als een foto kleiner is dan het canvas moet deze opgeblazen worden.
+# TODO: 003:    Project nieuw | Afbeelding geladen : Er staat dus een afbeelding op het canvas
+#               Open bestand | In het "Kies een afbeelding" popup scherm kiezen voor Annuleren
+#               Issue: De afbeelding verdwijnt dan. Helderheid of zwart/wit instellen zet de afbeelding weer
+#               op het canvas
 
 
 
@@ -30,6 +34,9 @@ class DnPDataScreen:
         self.background="#FFFFFF"
         self.b_w_var = IntVar()
         self.luminance_value = StringVar()
+        self.old_image = ""
+        self.actual_image = ""
+
 
     def show(self):
         # Wat variabelen maken om later makkelijker de layout aan te kunnen passen
@@ -261,12 +268,20 @@ class DnPDataScreen:
         self.image_screen.set_brightness(self.luminance_value.get())
 
     def load_image(self):
-        afbeelding = self.image_screen.load_image()
-        self.image_screen.img = afbeelding
+        self.old_image = self.actual_image
+        self.actual_image = self.image_screen.load_image()
+        self.image_screen.img = self.actual_image
         self.image_screen.show_image()
-        if len(afbeelding) > 40:
-            afbeelding = afbeelding[:40] + "\n" + afbeelding[40:]
+        if len(self.actual_image) > 40:
+            afbeelding = self.actual_image[:40] + "\n" + self.actual_image[40:]
         self.projectbestand.set(afbeelding)
+        if self.old_image != self.actual_image:
+            self.b_w_var.set(0)
+            self.luminance_value.set(0)
+        self.b_w_pressed()
+        self.luminance_changed()
+
+
 
     def annuleren(self):
         self.main_screen.clear_screen()
@@ -282,7 +297,12 @@ class DnPImageScreen:
 
         # Met config in te stellen variablen
         self.canvas_background = "#DDDDDD"          # achtergrondkleur van het canvas
-        self.image_cursor = "arrow"                 # cursorvorm zodra je over de afbeeldign heen gaat
+        self.image_cursors = ["arrow",              # cursorvormen voor de afbeelding
+                              "top_left_corner",
+                              "top_right_corner",
+                              "bottom_left_corner",
+                              "bottom_right_corner",
+                              "hand2"]
         self.img = None                             # Het pad en naam van de afbeelding
         self.randkleur = "#DDDDDD"                  # De kleur van de rand om het frame
         self.randdikte = 2                          # De dikte van de rand om het frame
@@ -301,6 +321,8 @@ class DnPImageScreen:
         self.cropwindow = -1
         self.afbeelding_x = 0
         self.afbeelding_y = 0
+        self.cropcoords = [0, 0, 0, 0]
+        self.button_1_pressed = False
 
     def config(self, **kwargs):
         if kwargs.get("image"):
@@ -353,8 +375,11 @@ class DnPImageScreen:
             # Maak een canvas op het frame en plaats daar de afbeelding op
             self.canvas = Canvas(self.image_frame, width=self.width, height=self.height)
             # self.canvas.config(background=self.canvas_background, cursor=self.image_cursor, relief='ridge', highlightthickness=0)
-            self.canvas.config(background="#AAAAFF", cursor=self.image_cursor, relief='ridge',
+            self.canvas.config(background="#AAAAFF", cursor=self.image_cursors[0], relief='ridge',
                                highlightthickness=0)
+            self.canvas.bind("<Motion>",self.motion_canvas)
+            self.canvas.bind("<Button-1>", self.button_pressed_canvas)
+            self.canvas.bind("<ButtonRelease-1>", self.button_released_canvas)
 
             # Bepaal x- en y-coördinaat van het canvas aan de hand van wel of niet centreren
             x = 0
@@ -368,17 +393,78 @@ class DnPImageScreen:
             # Plaats het canvas
             self.canvas.place(x=0, y=0)
             self.canvas.create_image(self.afbeelding_x, self.afbeelding_y, anchor="nw", image=self.img)
-            self.canvas.update_idletasks()
-            self.show_cropwindow(self.afbeelding_x,
+            self.canvas.update_idletasks
+            self.cropcoords = [self.afbeelding_x,
                                  self.afbeelding_y,
                                  self.afbeelding_x + afbeelding_size_b,
-                                 self.afbeelding_y + afbeelding_size_h)
+                                 self.afbeelding_y + afbeelding_size_h]
+            self.show_cropwindow()
 
-    def show_cropwindow(self, x1, y1, x2, y2):
+    def get_cursor_location(self, event):
+        # cursorvorm 1: De cursor bevindt zich links boven
+        if (event.x > self.cropcoords[0] - 10) and \
+                (event.x < self.cropcoords[0] + 10) and \
+                (event.y > self.cropcoords[1] - 10) and \
+                (event.y < self.cropcoords[1] + 10):
+            return 1
+        else:
+            # locatie 1: De cursor bevindt zich rechts boven
+            if (event.x > self.cropcoords[2] - 10) and \
+                (event.x < self.cropcoords[2] + 10) and \
+                (event.y > self.cropcoords[1] - 10) and \
+                (event.y < self.cropcoords[1] + 10):
+                return 2
+            else:
+                # locatie 2: De cursor bevindt zich links onder
+                if (event.x > self.cropcoords[0] - 10) and \
+                        (event.x < self.cropcoords[0] + 10) and \
+                        (event.y > self.cropcoords[3] - 10) and \
+                        (event.y < self.cropcoords[3] + 10):
+                    return 3
+                else:
+                    # locatie 3: De cursor bevindt zich links onder
+                    if (event.x > self.cropcoords[2] - 10) and \
+                            (event.x < self.cropcoords[2] + 10) and \
+                            (event.y > self.cropcoords[3] - 10) and \
+                            (event.y < self.cropcoords[3] + 10):
+                        return 4
+                    else:
+                        # locatie 4: De cusor bevindt zich binnen het cropwindow, maar niet in de hoeken
+                        if (event.x > self.cropcoords[0]) and \
+                                (event.x < self.cropcoords[2]) and \
+                                (event.y > self.cropcoords[1]) and \
+                                (event.y < self.cropcoords[3]):
+                            return 5
+                        else:
+                            return 0
+
+
+    def motion_canvas(self, event):
+        # print("Motion event: ", event)
+        cursor_locatie = self.get_cursor_location(event)
+        self.canvas.config(cursor=self.image_cursors[cursor_locatie])
+        if self.button_1_pressed:
+            print(cursor_locatie)
+        else:
+            print("Niet ingedrukt")
+
+    def button_pressed_canvas(self, event):
+        self.button_1_pressed = True
+
+    def button_released_canvas(self, event):
+        self.button_1_pressed = False
+
+
+
+    def show_cropwindow(self):
         if self.cropwindow >= 0:
             self.canvas.delete(self.cropwindow)
             print ("delete ", self.cropwindow, type(self.cropwindow))
-        self.cropwindow = self.canvas.create_rectangle(x1, y1, x2, y2, width= 2, outline="red")
+        self.cropwindow = self.canvas.create_rectangle(self.cropcoords[0],
+                                                       self.cropcoords[1],
+                                                       self.cropcoords[2],
+                                                       self.cropcoords[3],
+                                                       width= 2, outline="red")
 
 
     def get_image(self):
