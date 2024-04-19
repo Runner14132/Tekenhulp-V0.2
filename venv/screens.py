@@ -42,7 +42,6 @@ class MainScreen:
         
     def get_screensize(self):
         return self.screen_width, self.screen_height
-        
 
     def clear_screen(self):
         for widget in self.window.winfo_children():

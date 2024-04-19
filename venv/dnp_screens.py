@@ -4,19 +4,9 @@
 #               als kwarg mee te geven. Daarom een string "True" of "False" meegeven en deze bij
 #               het afvangen omzetten naar boolean
 
-# DONE: 001:    Als je een nieuwe foto laadt dan moeten de variabelen zwart/wit en helderheid weer naar de initiele
-#               waarde gezet worden.
-# TODO: 002:    Als een foto kleiner is dan het canvas moet deze opgeblazen worden.
-# TODO: 003:    Project nieuw | Afbeelding geladen : Er staat dus een afbeelding op het canvas
-#               Open bestand | In het "Kies een afbeelding" popup scherm kiezen voor Annuleren
-#               Issue: De afbeelding verdwijnt dan. Helderheid of zwart/wit instellen zet de afbeelding weer
-#               op het canvas
-
-
-
 
 from tkinter import (Menu, Frame, ttk, Canvas, Checkbutton, Spinbox, IntVar, StringVar, filedialog, Button, Label,
-                     Entry, RIDGE, SUNKEN, messagebox)
+                     Entry, RIDGE, SUNKEN, DISABLED, ACTIVE)
 from PIL import Image, ImageTk, ImageEnhance, ImageDraw
 from pathlib import Path
 from screens import MainScreen
@@ -36,6 +26,10 @@ class DnPDataScreen:
         self.luminance_value = StringVar()
         self.old_image = ""
         self.actual_image = ""
+        self.papierbreedte = StringVar()
+        self.papierhoogte = StringVar()
+        self.crop_x1 = StringVar()
+        self.crop_x1 = "H"
 
 
     def show(self):
@@ -98,14 +92,16 @@ class DnPDataScreen:
                                 background=self.background)
         zwartwit_label.place(x=column1, y=height)
 
-        checkbox = Checkbutton(dataframe,
+        self.checkbox = Checkbutton(dataframe,
                                text="",
                                variable=self.b_w_var,
                                onvalue=1,
                                offvalue=0,
                                command=self.b_w_pressed,
-                               background=self.background)
-        checkbox.place(x=column2, y=height)
+                               background=self.background,
+                               activebackground=self.background,
+                               state=DISABLED)
+        self.checkbox.place(x=column2, y=height)
         height += linespace
 
         # Helderheid
@@ -116,14 +112,15 @@ class DnPDataScreen:
         helderheid_label.place(x=column1, y=height)
 
         self.luminance_value.set("0")
-        luminance_box = Spinbox(dataframe,
+        self.luminance_box = Spinbox(dataframe,
                                 from_=-10, to=10,
-                                state="readonly",
                                 textvariable=self.luminance_value,
                                 width=5,
-                                bg="#FFFFFF",
-                                command=self.luminance_changed)
-        luminance_box.place(x=column2, y=height)
+                                command=self.luminance_changed,
+                                disabledbackground=self.background,
+                                readonlybackground=self.background,
+                                state=DISABLED)
+        self.luminance_box.place(x=column2, y=height)
         height += linespace
 
         # Formaat tekenpapier
@@ -143,7 +140,9 @@ class DnPDataScreen:
                                             width=5,
                                             font=("Arial", 12),
                                             relief=SUNKEN,
-                                            borderwidth=2)
+                                            borderwidth=2,
+                                            textvariable=self.papierbreedte)
+        formaat_tekenpapier_b_entry.bind("<FocusOut>", self.papersize_changed)
         formaat_tekenpapier_b_entry.place(x=column2, y=height)
 
         formaat_tekenpapier_b2_label = Label(dataframe,
@@ -162,7 +161,9 @@ class DnPDataScreen:
                                             width=5,
                                             font=("Arial", 12),
                                             relief=SUNKEN,
-                                            borderwidth=2)
+                                            borderwidth=2,
+                                            textvariable=self.papierhoogte)
+        formaat_tekenpapier_h_entry.bind("<FocusOut>", self.papersize_changed)
         formaat_tekenpapier_h_entry.place(x=column2, y=height+25)
 
         formaat_tekenpapier_h2_label = Label(dataframe,
@@ -183,6 +184,11 @@ class DnPDataScreen:
                                  font=("Arial", 9),
                                  background=self.background)
         cropwindow_x1_label.place(x=column2, y=height)
+        cropwindow_x1_waarde_label = Label(dataframe,
+                                           font=("Arial", 9),
+                                           background=self.background,
+                                           textvariable=self.crop_x1)
+        cropwindow_x1_waarde_label.place(x=column2 + 20, y=height)
 
         cropwindow_y1_label = Label(dataframe,
                                  text="y1:",
@@ -267,21 +273,86 @@ class DnPDataScreen:
     def luminance_changed(self):
         self.image_screen.set_brightness(self.luminance_value.get())
 
+    def papersize_changed(self, event):
+        papierbreedte = self.papierbreedte.get()
+        papierhoogte = self.papierhoogte.get()
+
+        try:
+            int_papierbreedte = int(papierbreedte)
+        except ValueError:
+            int_papierbreedte = -1
+
+        try:
+            int_papierhoogte = int(papierhoogte)
+        except ValueError:
+            int_papierhoogte = -1
+
+        if int_papierbreedte == -1 or int_papierhoogte == -1:
+            melding_breedte = "De breedte bevat een niet toegestane waarde {}\n".format(
+                papierbreedte) if int_papierbreedte == -1 else ""
+            melding_hoogte = "De hoogte bevat een niet toegestane waarde {}\n".format(
+                papierhoogte) if int_papierhoogte == -1 else ""
+
+            messagebox.showerror(title="Geen toegestane waarde", message=melding_breedte + melding_hoogte)
+
+            if int_papierbreedte == -1:
+                self.papierbreedte.set("")
+            if int_papierhoogte == -1:
+                self.papierhoogte.set("")
+        else:
+            verhouding = int_papierbreedte / int_papierhoogte
+            self.image_screen.hallo(verhouding)
+
+    def papersize_changed(self, event):
+        papierbreedte = self.papierbreedte.get()
+        papierhoogte = self.papierhoogte.get()
+        if papierbreedte != "" and papierhoogte != "":
+
+            if papierbreedte != "":
+                try:
+                    int_papierbreedte = int(papierbreedte)
+                except ValueError:
+                    int_papierbreedte = -1
+            if papierhoogte != "":
+                try:
+                    int_papierhoogte = int(papierhoogte)
+                except ValueError:
+                    int_papierhoogte = -1
+
+            if (int_papierbreedte == -1) or (int_papierhoogte == -1):
+                if int_papierbreedte == -1 or int_papierhoogte == -1:
+                    melding_breedte = "De breedte bevat een niet toegestane waarde {}\n".format(
+                        papierbreedte) if int_papierbreedte == -1 else ""
+                    melding_hoogte = "De hoogte bevat een niet toegestane waarde {}\n".format(
+                        papierhoogte) if int_papierhoogte == -1 else ""
+
+                    messagebox.showerror(title="Geen toegestane waarde",
+                                         message=melding_breedte + melding_hoogte)
+                    if int_papierbreedte == -1:
+                        self.papierbreedte.set("")
+                    if int_papierhoogte == -1:
+                        self.papierhoogte.set("")
+            else:
+                verhouding = int_papierbreedte / int_papierhoogte
+                self.image_screen.hallo(verhouding)
+
+
+
     def load_image(self):
         self.old_image = self.actual_image
         self.actual_image = self.image_screen.load_image()
+        self.checkbox.config(state=ACTIVE)
+        self.luminance_box.config(state="readonly")
         self.image_screen.img = self.actual_image
         self.image_screen.show_image()
         if len(self.actual_image) > 40:
             afbeelding = self.actual_image[:40] + "\n" + self.actual_image[40:]
-        self.projectbestand.set(afbeelding)
+            self.projectbestand.set(afbeelding)
         if self.old_image != self.actual_image:
             self.b_w_var.set(0)
             self.luminance_value.set(0)
         self.b_w_pressed()
         self.luminance_changed()
-
-
 
     def annuleren(self):
         self.main_screen.clear_screen()
@@ -323,6 +394,7 @@ class DnPImageScreen:
         self.afbeelding_y = 0
         self.cropcoords = [0, 0, 0, 0]
         self.button_1_pressed = False
+        self.file_path = ""
 
     def config(self, **kwargs):
         if kwargs.get("image"):
@@ -342,6 +414,9 @@ class DnPImageScreen:
             else:
                 self.image_center = True
             # print(temp)
+
+    def hallo(self, verhouding):
+        print(verhouding)
 
     def show_canvas(self):
         self.image_frame = Frame(self.window,
@@ -438,7 +513,6 @@ class DnPImageScreen:
                         else:
                             return 0
 
-
     def motion_canvas(self, event):
         # print("Motion event: ", event)
         cursor_locatie = self.get_cursor_location(event)
@@ -453,8 +527,6 @@ class DnPImageScreen:
 
     def button_released_canvas(self, event):
         self.button_1_pressed = False
-
-
 
     def show_cropwindow(self):
         if self.cropwindow >= 0:
@@ -485,39 +557,40 @@ class DnPImageScreen:
         self.set_brightness(self.brightness_value)
 
     def set_color(self):
-        self.bw = False
-        self.actual_image = self.initial_color_image
-        self.img = ImageTk.PhotoImage(self.actual_image)
-        self.canvas.create_image(self.afbeelding_x, self.afbeelding_y, anchor="nw", image=self.img)
-        self.canvas.update_idletasks()
-        self.set_brightness(self.brightness_value)
+        if self.actual_image != None:
+            self.bw = False
+            self.actual_image = self.initial_color_image
+            self.img = ImageTk.PhotoImage(self.actual_image)
+            self.canvas.create_image(self.afbeelding_x, self.afbeelding_y, anchor="nw", image=self.img)
+            self.canvas.update_idletasks()
+            self.set_brightness(self.brightness_value)
 
     def set_brightness(self, value):
-        self.brightness_value = value
-        if self.bw:
-            self.brightness_image = ImageEnhance.Brightness(self.initial_bw_image)
-        else:
-            self.brightness_image = ImageEnhance.Brightness(self.initial_color_image)
-        self.actual_image = self.brightness_image.enhance(1 + (int(value)/10))
-        self.img = ImageTk.PhotoImage(self.actual_image)
-        self.canvas.create_image(self.afbeelding_x, self.afbeelding_y, anchor="nw", image=self.img)
-        self.canvas.update_idletasks()
+        if self.actual_image != None:
+            self.brightness_value = value
+            if self.bw:
+                self.brightness_image = ImageEnhance.Brightness(self.initial_bw_image)
+            else:
+                self.brightness_image = ImageEnhance.Brightness(self.initial_color_image)
+            self.actual_image = self.brightness_image.enhance(1 + (int(value)/10))
+            self.img = ImageTk.PhotoImage(self.actual_image)
+            self.canvas.create_image(self.afbeelding_x, self.afbeelding_y, anchor="nw", image=self.img)
+            self.canvas.update_idletasks()
 
     def load_image(self):
         image_files = [".jpg", ".jpeg", ".png", ".ico"]
         image_file_type = ""
         for image_file in image_files:
             image_file_type += image_file + " "
-        file_path = filedialog.askopenfilename(initialdir="C:\\Users\\vario\\PycharmProjects\\Tekenhulp V0.2\\images",
+        self.file_path = filedialog.askopenfilename(initialdir="C:\\Users\\vario\\PycharmProjects\\Tekenhulp V0.2\\images",
                                                title="Kies een afbeelding",
                                                filetypes=(("image files", image_file_type),
                                                           ("all files", "*.*")))
-        if ((Path(file_path).suffix) not in image_files) and file_path != "":
-            print("File is geen toegestane afbeelding")
+        if ((Path(self.file_path).suffix) not in image_files) and self.file_path != "":
             messagebox.showerror(title="Geen toegestane afbeelding",
                                  message="Geen toegestane afbeelding!\n\n"
                                          "Afbeeldingen die toegestaan zijn:\n"
                                          + image_file_type)
-            file_path = ""
+            # file_path = ""
 
-        return file_path
+        return self.file_path
