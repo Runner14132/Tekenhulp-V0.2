@@ -53,9 +53,11 @@ if __name__ == '__main__':
     # Objecten definiëren
     root = Tk()
     imagescreen = DnPImageScreen(root, 100, 80, 800, 800)
+    datascreen = DnPDataScreen(root, imagescreen, 1000, 80, 600, 800)
+
     screen = MainScreen(root, title="Tekenhulp Versie 2.0", bg="#FFFFFF", icon=".\\images\\colored-pencils.ico")
     header = Header()
-    datascreen = DnPDataScreen(root, imagescreen, 1000, 80, 600, 800)
+
 
     mainscreen()
     root.mainloop()

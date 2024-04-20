@@ -29,7 +29,6 @@ class DnPDataScreen:
         self.papierbreedte = StringVar()
         self.papierhoogte = StringVar()
         self.crop_x1 = StringVar()
-        self.crop_x1 = "H"
 
 
     def show(self):
@@ -184,6 +183,8 @@ class DnPDataScreen:
                                  font=("Arial", 9),
                                  background=self.background)
         cropwindow_x1_label.place(x=column2, y=height)
+
+        self.crop_x1.set("H")
         cropwindow_x1_waarde_label = Label(dataframe,
                                            font=("Arial", 9),
                                            background=self.background,
@@ -269,6 +270,7 @@ class DnPDataScreen:
             self.image_screen.set_black_white()
         else:
             self.image_screen.set_color()
+        # self.crop_x1.set("0")
 
     def luminance_changed(self):
         self.image_screen.set_brightness(self.luminance_value.get())
@@ -336,8 +338,6 @@ class DnPDataScreen:
                 verhouding = int_papierbreedte / int_papierhoogte
                 self.image_screen.hallo(verhouding)
 
-
-
     def load_image(self):
         self.old_image = self.actual_image
         self.actual_image = self.image_screen.load_image()
@@ -357,14 +357,17 @@ class DnPDataScreen:
     def annuleren(self):
         self.main_screen.clear_screen()
 
+    def set_crop_vars(self,crop):
+        self.crop_x1.set(crop[0])
 
-class DnPImageScreen:
+class DnPImageScreen():
     def __init__(self, on_top_of, x, y, width, height, **kwargs):
         self.window = on_top_of
         self.pos_x = x
         self.pos_y = y
         self.width = width
         self.height = height
+        self.dnp_data_screen = DnPDataScreen
 
         # Met config in te stellen variablen
         self.canvas_background = "#DDDDDD"          # achtergrondkleur van het canvas
@@ -395,6 +398,7 @@ class DnPImageScreen:
         self.cropcoords = [0, 0, 0, 0]
         self.button_1_pressed = False
         self.file_path = ""
+        self.dnp_data_screen = DnPDataScreen
 
     def config(self, **kwargs):
         if kwargs.get("image"):
@@ -536,8 +540,9 @@ class DnPImageScreen:
                                                        self.cropcoords[1],
                                                        self.cropcoords[2],
                                                        self.cropcoords[3],
-                                                       width= 2, outline="red")
-
+                                                       width= 3, outline="red")
+        # DnPDataScreen.crop_x1.set(str(self.cropcoords[0]))
+        self.dnp_data_screen.set_crop_vars(self.cropcoords)
 
     def get_image(self):
         try:
