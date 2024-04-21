@@ -2,6 +2,9 @@
 # TODO: 004:    Testen met verschillende beeldschermgroottes
 # TODO: 007:    Als een afbeelding geladen is moet het programma volgende keer weer in de laatste directory krijgen.
 # TODO: 008:    Foutmelding. Starten - Annuleren - Project Nieuw ??
+# TODO: 011:    dnp_screens - DnPDataScreen - Load image
+#               Als de padlengte van de afbeelding > 80 wordt er alleen afgebroken op positie 40.
+#               Na positie 80 gaat het mis.
 
 
 # DONE: 001:    Als je een nieuwe foto laadt dan moeten de variabelen zwart/wit en helderheid weer naar de initiele

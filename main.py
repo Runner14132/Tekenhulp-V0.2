@@ -27,7 +27,8 @@ def nieuw_project():
     screen.clear_screen()
     header.show(root, text="Nieuw project")
     datascreen.show()
-    imagescreen.config(image="", bg="#DDDDDD", linethickness="2", linecolor="#DDDDDD", image_center="True")
+    imagescreen.config(image="", bg="#EEEEEE", linethickness="2", linecolor="#EEEEEE", image_center="True",
+                       datascreenobject=datascreen)
     imagescreen.show_canvas()
     imagescreen.show_image()
     # imagescreen.load_image()
@@ -52,11 +53,19 @@ def mainscreen():
 if __name__ == '__main__':
     # Objecten definiëren
     root = Tk()
-    imagescreen = DnPImageScreen(root, 100, 80, 800, 800)
-    datascreen = DnPDataScreen(root, imagescreen, 1000, 80, 600, 800)
-
     screen = MainScreen(root, title="Tekenhulp Versie 2.0", bg="#FFFFFF", icon=".\\images\\colored-pencils.ico")
     header = Header()
+    # Oude situatie
+    # imagescreen = DnPImageScreen(root, 100, 80, 800, 800)
+    # datascreen = DnPDataScreen(root, imagescreen, 1000, 80, 600, 800)
+
+    # Nieuwe situatie
+    imagescreen = DnPImageScreen(root, 100, 80, 800, 800, datascreenobject=None)
+    datascreen = DnPDataScreen(root, 1000, 80, 600, 800, imagescreenobject=imagescreen)
+
+    # Einde nieuwe situatie
+
+
 
 
     mainscreen()
